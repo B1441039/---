@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>測出你的靈魂原形｜動物系性格測驗</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- html2canvas CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- Google Fonts: 圓體質感無襯線字型 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            maru: ['"Zen Maru Gothic"', 'sans-serif'],
+          },
+          colors: {
+            cream: '#FFFDF9',
+            darkslate: '#2D3142',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Zen Maru Gothic', sans-serif;
+      background: linear-gradient(135deg, #FFFDF9 0%, #F5F1EB 50%, #FAF6F0 100%);
+      color: #2D3142;
+      min-height: 100vh;
+    }
+    .fade-enter {
+      animation: fadeIn 0.4s ease-out forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .pastel-shadow {
+      box-shadow: 0 12px 30px -8px rgba(45, 49, 66, 0.08);
+    }
+  </style>
+</head>
+<body class="flex items-center justify-center p-4 selection:bg-pink-100">
+
+  <main class="w-full max-w-xl mx-auto my-6">
+
+    <!-- 1. 歡迎首頁畫面 -->
+    <div id="screen-welcome" class="bg-white/80 backdrop-blur-md rounded-3xl p-8 border border-white/60 pastel-shadow text-center fade-enter">
+      <div class="inline-block p-4 rounded-full bg-amber-50 mb-4 text-4xl">🐾</div>
+      <h1 class="text-3xl font-bold tracking-wide text-darkslate mb-3">測出你的靈魂原形</h1>
+      <p class="text-sm font-medium text-gray-500 mb-8 leading-relaxed">
+        走進粉彩森林，8 個直覺日常情境<br>解鎖你在群體與獨處時最真實的動物原型
+      </p>
+
+      <div class="bg-amber-50/60 rounded-2xl p-4 mb-8 text-left text-xs leading-6 text-gray-600 border border-amber-100">
+        ✨ <strong>測驗包含：</strong>五維性格雷達圖、專屬天賦與盲點解析、最合拍與相處考驗的夥伴指引。
+      </div>
+
+      <button onclick="quizApp.startQuiz()" class="w-full py-4 px-6 bg-amber-200 hover:bg-amber-300 active:scale-[0.98] transition-all duration-200 rounded-2xl font-bold text-darkslate text-base shadow-sm">
+        開始測驗 (約 1 分鐘) ➔
+      </button>
+    </div>
+
+    <!-- 2. 答題進行畫面 -->
+    <div id="screen-quiz" class="hidden bg-white/85 backdrop-blur-md rounded-3xl p-7 border border-white/80 pastel-shadow">
+      <!-- 頂部進度條 -->
+      <div class="mb-6">
+        <div class="flex justify-between items-center text-xs font-bold text-gray-400 mb-2">
+          <span>PROGRESS</span>
+          <span id="quiz-progress-text">1 / 8</span>
+        </div>
+        <div class="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+          <div id="quiz-progress-bar" class="bg-amber-300 h-2.5 rounded-full transition-all duration-300" style="width: 12.5%;"></div>
+        </div>
+      </div>
+
+      <!-- 題目內容 -->
+      <div id="question-container" class="fade-enter">
+        <h2 id="question-text" class="text-xl font-bold text-darkslate mb-6 min-h-[56px] leading-snug"></h2>
+        <div id="options-container" class="space-y-3.5 mb-6"></div>
+      </div>
+
+      <!-- 導航控制 -->
+      <div class="flex justify-between items-center pt-2 border-t border-gray-100">
+        <button id="btn-prev" onclick="quizApp.prevQuestion()" class="text-xs font-bold text-gray-400 hover:text-darkslate transition-colors py-2 px-3 rounded-lg">
+          ← 上一題
+        </button>
+        <span class="text-xs text-gray-300 font-medium">請選取最直覺的反應</span>
+      </div>
+    </div>
+
+    <!-- 3. 結果計算載入中畫面 -->
+    <div id="screen-loading" class="hidden bg-white/80 backdrop-blur-md rounded-3xl p-12 border border-white/60 pastel-shadow text-center fade-enter">
+      <div class="inline-block animate-bounce text-5xl mb-4">🔮</div>
+      <h3 class="text-xl font-bold text-darkslate mb-2">正在解讀你的靈魂頻率...</h3>
+      <p class="text-xs text-gray-400">正在調配專屬色盤與性格維度圖</p>
+    </div>
+
+    <!-- 4. 結果卡片畫面 -->
+    <div id="screen-result" class="hidden space-y-4 fade-enter">
+      <!-- 可截圖的卡片區域 -->
+      <div id="result-card" class="bg-white rounded-3xl p-7 border border-gray-100 pastel-shadow">
+        
+        <!-- 頭部原型與視覺 -->
+        <div class="text-center pb-5 border-b border-gray-100">
+          <div id="result-icon-bg" class="w-20 h-20 mx-auto rounded-3xl flex items-center justify-center text-4xl mb-3 shadow-inner">
+            <span id="result-icon">🐕</span>
+          </div>
+          <span id="result-subtitle" class="text-xs font-bold tracking-widest text-gray-400 uppercase">性格原型</span>
+          <h2 id="result-title" class="text-2xl font-bold text-darkslate mt-1 mb-3"></h2>
+          
+          <!-- 性格標籤 -->
+          <div id="result-tags" class="flex flex-wrap gap-1.5 justify-center"></div>
+        </div>
+
+        <!-- 五維雷達圖 -->
+        <div class="py-5 border-b border-gray-100">
+          <h3 class="text-xs font-bold text-gray-400 text-center mb-2 tracking-wider">五維性格雷達圖</h3>
+          <div class="relative w-full max-w-[280px] h-[220px] mx-auto">
+            <canvas id="radarChart"></canvas>
+          </div>
+        </div>
+
+        <!-- 特質解析 -->
+        <div class="py-5 space-y-4 border-b border-gray-100 text-sm leading-relaxed">
+          <div>
+            <h4 class="text-xs font-bold text-amber-700 bg-amber-50 inline-block px-2.5 py-1 rounded-md mb-1.5">🌟 靈魂天賦</h4>
+            <p id="result-strength" class="text-gray-600 text-xs sm:text-sm"></p>
+          </div>
+          <div>
+            <h4 class="text-xs font-bold text-slate-700 bg-slate-100 inline-block px-2.5 py-1 rounded-md mb-1.5">🌱 潛在盲點與練習</h4>
+            <p id="result-blindspot" class="text-gray-600 text-xs sm:text-sm"></p>
+          </div>
+        </div>
+
+        <!-- 相性矩陣 -->
+        <div class="pt-5 grid grid-cols-2 gap-3 text-xs">
+          <div class="bg-rose-50/60 p-3.5 rounded-2xl border border-rose-100">
+            <div class="font-bold text-rose-600 mb-1">💕 天生一對</div>
+            <div id="result-match" class="text-gray-700 font-bold mb-0.5"></div>
+            <div id="result-match-desc" class="text-gray-500 text-[11px] leading-tight"></div>
+          </div>
+          <div class="bg-sky-50/60 p-3.5 rounded-2xl border border-sky-100">
+            <div class="font-bold text-sky-600 mb-1">⚡ 相處磨合</div>
+            <div id="result-clash" class="text-gray-700 font-bold mb-0.5"></div>
+            <div id="result-clash-desc" class="text-gray-500 text-[11px] leading-tight"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 操作按鈕列 -->
+      <div class="bg-white/80 backdrop-blur-md rounded-2xl p-4 border border-white/60 pastel-shadow flex gap-3">
+        <button onclick="quizApp.downloadImage()" class="flex-1 py-3 px-4 bg-amber-200 hover:bg-amber-300 active:scale-95 transition rounded-xl font-bold text-darkslate text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-sm">
+          <span>📸</span> 下載結果圖
+        </button>
+        <button onclick="quizApp.copyResult()" class="flex-1 py-3 px-4 bg-gray-100 hover:bg-gray-200 active:scale-95 transition rounded-xl font-bold text-darkslate text-xs sm:text-sm flex items-center justify-center gap-1.5">
+          <span>📋</span> 複製結果
+        </button>
+        <button onclick="quizApp.restart()" class="py-3 px-4 bg-white hover:bg-gray-50 active:scale-95 transition rounded-xl font-bold text-gray-500 text-xs sm:text-sm border border-gray-200">
+          重測
+        </button>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- 提示浮動 Toast -->
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-darkslate text-white text-xs px-4 py-2.5 rounded-full shadow-lg opacity-0 transition-opacity duration-300 pointer-events-none z-50">
+    已複製到剪貼簿！
+  </div>
+
+  <script>
+    // 6 種動物性格定義庫
+    const ANIMAL_PROFILES = {
+      dog: {
+        id: 'dog',
+        name: '忠誠金毛獵犬',
+        subtitle: '太陽系夥伴',
+        icon: '🐕',
+        color: '#FDE2B8',
+        chartColor: 'rgba(253, 226, 184, 0.7)',
+        tags: ['#高同理心', '#群體黏著劑', '#忠誠真誠', '#小太陽'],
+        stats: [90, 45, 65, 95, 40], // 社交, 邏輯, 冒險, 同理, 獨立
+        strength: '擁有讓人瞬間放下戒備的溫暖氣場，擅長凝聚眾人並敏銳體察他人情緒，是大家最安心的避風港。',
+        blindspot: '容易過度配合他人期待而忽視自己的疲憊，偶爾學會拒絕與適當退後，能量才不會被掏空。',
+        match: '機靈活力小水獺',
+        matchDesc: '他的古靈精怪能點亮你的日常，你的包容是他最穩定的靠山。',
+        clash: '獨立優雅黑貓',
+        clashDesc: '黑貓的冷淡可能會讓熱情的你感到挫折，記得給他獨處的界線。'
+      },
+      cat: {
+        id: 'cat',
+        name: '獨立優雅黑貓',
+        subtitle: '漫遊系行者',
+        icon: '🐈‍⬛',
+        color: '#E2D4F0',
+        chartColor: 'rgba(226, 212, 240, 0.7)',
+        tags: ['#界線分明', '#敏銳直覺', '#安於獨處', '#美感極致'],
+        stats: [35, 75, 60, 50, 95],
+        strength: '洞察力極高，不盲從潮流，能清醒看穿事物的本質。在混亂中依然保有清冷優雅的步調。',
+        blindspot: '有時防備心較重，會讓人產生距離感。試著向親近的人表達脆弱，關係會更深厚。',
+        match: '沉穩森林貓頭鷹',
+        matchDesc: '彼此都尊重私人空間與理性界線，相處起來舒服無負擔。',
+        clash: '忠誠金毛獵犬',
+        clashDesc: '獵犬過度密集的社交熱度會讓你感到窒息，需要直白表達空間需求。'
+      },
+      owl: {
+        id: 'owl',
+        name: '沉穩森林貓頭鷹',
+        subtitle: '理性系智囊',
+        icon: '🦉',
+        color: '#D3E4CD',
+        chartColor: 'rgba(211, 228, 205, 0.7)',
+        tags: ['#邏輯縝密', '#冷靜克制', '#秩序掌控', '#問題終結者'],
+        stats: [40, 95, 45, 60, 85],
+        strength: '天然的戰略家，面對重大突發事件能瞬間抽離情緒，迅速梳理脈絡並建立高效率 SOP。',
+        blindspot: '過於講求邏輯時容易忽略他人當下的情緒價值，記得「先處理心情，再處理事情」。',
+        match: '隨遇而安小樹懶',
+        matchDesc: '小樹懶的鬆弛感能有效化解你的緊繃與焦慮，是最平靜的避難所。',
+        clash: '機敏狂想赤狐',
+        clashDesc: '赤狐不安常理出牌的跳躍邏輯，容易打破你精心安排的秩序。'
+      },
+      otter: {
+        id: 'otter',
+        name: '機靈活力小水獺',
+        subtitle: '浪潮系精靈',
+        icon: '🦦',
+        color: '#C7E8F3',
+        chartColor: 'rgba(199, 232, 243, 0.7)',
+        tags: ['#點子製造機', '#樂天幽默', '#即興適應', '#氣氛擔當'],
+        stats: [85, 55, 90, 70, 60],
+        strength: '好奇心強烈、適應力極佳，總能在枯燥的日常中嗅出好玩的火花，是所有人的開心果。',
+        blindspot: '三分鐘熱度與過於隨性的習慣，有時會讓需要確定感的工作夥伴感到不安。',
+        match: '忠誠金毛獵犬',
+        matchDesc: '一拍即合的玩樂搭檔，永遠有聊不完的話題與探索清單。',
+        clash: '隨遇而安小樹懶',
+        clashDesc: '你想往前衝時樹懶只想躺平，步調極度不一致容易產生摩擦。'
+      },
+      fox: {
+        id: 'fox',
+        name: '機敏狂想赤狐',
+        subtitle: '靈動系策劃',
+        icon: '🦊',
+        color: '#FBC4AB',
+        chartColor: 'rgba(251, 196, 171, 0.7)',
+        tags: ['#打破常規', '#直覺破局', '#應變敏捷', '#魅力領袖'],
+        stats: [75, 80, 90, 50, 75],
+        strength: '靈活敏捷的策略腦，擅長在規則邊緣找到最高效的捷徑，具有強烈的個人魅力與說服力。',
+        blindspot: '偶爾會因為思維跳躍過快而顯得缺乏耐心，給身邊的人一點跟上你節奏的時間。',
+        match: '獨立優雅黑貓',
+        matchDesc: '棋逢敵手的智慧碰撞，彼此互相欣賞獨特且不被定義的靈魂。',
+        clash: '沉穩森林貓頭鷹',
+        clashDesc: '當你嘗試冒險偏方時，貓頭鷹的嚴謹審查往往會澆熄你的熱情。'
+      },
+      sloth: {
+        id: 'sloth',
+        name: '隨遇而安小樹懶',
+        subtitle: '悠然系大師',
+        icon: '🦥',
+        color: '#EDE0D4',
+        chartColor: 'rgba(237, 224, 212, 0.7)',
+        tags: ['#反內耗高手', '#情緒穩定', '#溫和平靜', '#療癒樹洞'],
+        stats: [30, 65, 30, 85, 80],
+        strength: '情緒穩定度極高，世界再吵鬧也能維持內心的定力，自帶一種撫慰人心的安定能量。',
+        blindspot: '遇到衝突時容易選擇性逃避或拖延，及時表達自己的底線能避免問題發酵。',
+        match: '沉穩森林貓頭鷹',
+        matchDesc: '他負責規劃全局，你負責享受安穩，節奏互補非常舒適。',
+        clash: '機靈活力小水獺',
+        clashDesc: '水獺突如其來的邀約與高頻催促會讓你耗盡精力。'
+      }
+    };
+
+    // 8 道情境題目與分數權重配置
+    const QUESTIONS = [
+      {
+        q: "Q1. 突然獲得了一整天的非預期假期，手機完全沒公事訊息，你會？",
+        options: [
+          { text: "趕快揪朋友一起出門逛街喝下午茶、聊天續攤", scores: { dog: 2, otter: 1 } },
+          { text: "拉上窗簾，沉浸在香氛、音樂與個人的專屬小角落", scores: { cat: 2, owl: 1 } },
+          { text: "整理房間或把堆積已久的工作與學習清單逐項消滅", scores: { owl: 2, sloth: 1 } },
+          { text: "毫無計畫地跳上一班公車或火車，來場隨性漫遊", scores: { fox: 2, otter: 1 } }
+        ]
+      },
+      {
+        q: "Q2. 走進一個氣氛熱絡但全場都是陌生人的派對，你的本能反應是？",
+        options: [
+          { text: "微笑主動找看起來落單的人搭話，快速融入人群", scores: { dog: 2, fox: 1 } },
+          { text: "找個視野最好的角落坐下，默默品嚐點心並觀察大家", scores: { cat: 2, sloth: 1 } },
+          { text: "暗自分析今晚的聚會目的，鎖定值得交流的專業對象", scores: { owl: 2, cat: 1 } },
+          { text: "被全場最酷的音樂或特別的裝飾吸引，隨性晃動搭聊", scores: { fox: 2, otter: 1 } }
+        ]
+      },
+      {
+        q: "Q3. 團隊合作專案突然發生嚴重進度延誤，你第一時間通常會做什麼？",
+        options: [
+          { text: "先關心團隊成員的狀態與士氣，給予打氣與支持", scores: { dog: 2, sloth: 1 } },
+          { text: "迅速理清屬於自己的部分，避免受到混亂的波及", scores: { cat: 2, fox: 1 } },
+          { text: "冷靜梳理甘特圖與關鍵路徑，找出瓶頸並重新排定優先級", scores: { owl: 2, cat: 1 } },
+          { text: "打破既有框架，提出一招意想不到的替代方案快速交差", scores: { fox: 2, otter: 1 } }
+        ]
+      },
+      {
+        q: "Q4. 當最好的朋友遇到低潮找你傾訴，你最自然的回應方式是？",
+        options: [
+          { text: "給予緊緊的擁抱，陪他一起哭、一起宣洩情緒", scores: { dog: 2, otter: 1 } },
+          { text: "默默陪伴在身邊，不逼問原因，留給他舒適的沉默", scores: { cat: 2, sloth: 1 } },
+          { text: "幫他客觀抽絲剝繭問題癥結，分析下一步該怎麼解決", scores: { owl: 2, cat: 1 } },
+          { text: "想辦法帶他去做瘋狂開心的事，換個情境轉換心情", scores: { otter: 2, fox: 1 } }
+        ]
+      },
+      {
+        q: "Q5. 挑選居家空間的傢俱時，你最看重的要素是？",
+        options: [
+          { text: "能容納大家一起圍坐的溫暖大沙發或大地毯", scores: { dog: 2, sloth: 1 } },
+          { text: "隱密性高、美感獨特且質感精緻的個人單椅", scores: { cat: 2, fox: 1 } },
+          { text: "功能嚴謹、收納極致且符合人體工學的智能工作桌", scores: { owl: 2, sloth: 1 } },
+          { text: "外型前衛、色彩亮麗且具備多功能變化的設計單品", scores: { fox: 2, otter: 1 } }
+        ]
+      },
+      {
+        q: "Q6. 旅行途中突然遇到預定的餐廳沒開，你會？",
+        options: [
+          { text: "徵詢大家想吃什麼，只要大家吃得開心就好", scores: { dog: 2, sloth: 1 } },
+          { text: "無所謂，隨便走進路邊看起來順眼的小店自己吃", scores: { cat: 2, owl: 1 } },
+          { text: "立即打開地圖與評分軟體，重新篩選評分高於 4.5 的店家", scores: { owl: 2, cat: 1 } },
+          { text: "當作驚喜！轉個彎探索巷弄裡隱藏的神秘小吃", scores: { fox: 2, otter: 1 } }
+        ]
+      },
+      {
+        q: "Q7. 面對生活中的高壓競爭與焦慮，你的內在防護機制通常是？",
+        options: [
+          { text: "找值得信任的朋友大聊特聊，從支持中獲取力量", scores: { dog: 2, otter: 1 } },
+          { text: "戴上抗噪耳機，把自己與外界的噪音徹底隔絕", scores: { cat: 2, owl: 1 } },
+          { text: "制定精確的時間管理表，透過「掌控進度」來消除焦慮", scores: { owl: 2, cat: 1 } },
+          { text: "告訴自己「天塌下來也有別人頂著」，先睡一覺再說", scores: { sloth: 2, fox: 1 } }
+        ]
+      },
+      {
+        q: "Q8. 如果能在宇宙中擁有一座專屬星球，你希望它是什麼模樣？",
+        options: [
+          { text: "熱鬧非凡、隨時都有營火與歡樂慶典的溫馨星系", scores: { dog: 2, otter: 1 } },
+          { text: "籠罩在淡紫色極光下、靜謐而優雅的漂浮之城", scores: { cat: 2, fox: 1 } },
+          { text: "運轉精準如齒輪、藏有無盡知識庫的高科技星宿", scores: { owl: 2, cat: 1 } },
+          { text: "氣候變化莫測、充滿未知生態與奇幻地貌的探險秘境", scores: { fox: 2, otter: 1 } }
+        ]
+      }
+    ];
+
+    // 主應用程式物件
+    class QuizApp {
+      constructor() {
+        this.currentIndex = 0;
+        this.userAnswers = []; // 紀錄每題選擇的選項索引
+        this.chartInstance = null;
+        this.currentResult = null;
+      }
+
+      startQuiz() {
+        document.getElementById('screen-welcome').classList.add('hidden');
+        document.getElementById('screen-quiz').classList.remove('hidden');
+        this.currentIndex = 0;
+        this.userAnswers = [];
+        this.renderQuestion();
+      }
+
+      renderQuestion() {
+        const qData = QUESTIONS[this.currentIndex];
+        const progressPercent = ((this.currentIndex + 1) / QUESTIONS.length) * 100;
+        
+        document.getElementById('quiz-progress-text').innerText = `${this.currentIndex + 1} / ${QUESTIONS.length}`;
+        document.getElementById('quiz-progress-bar').style.width = `${progressPercent}%`;
+        document.getElementById('question-text').innerText = qData.q;
+
+        const optionsContainer = document.getElementById('options-container');
+        optionsContainer.innerHTML = '';
+
+        qData.options.forEach((opt, index) => {
+          const btn = document.createElement('button');
+          btn.className = "w-full text-left p-4 rounded-2xl bg-stone-50 hover:bg-amber-50 active:scale-[0.99] border border-stone-100 hover:border-amber-200 transition-all text-xs sm:text-sm font-medium text-darkslate leading-relaxed";
+          btn.innerText = opt.text;
+          btn.onclick = () => this.selectOption(index);
+          optionsContainer.appendChild(btn);
+        });
+
+        // 第一題時隱藏上一題按鈕
+        const prevBtn = document.getElementById('btn-prev');
+        if (this.currentIndex === 0) {
+          prevBtn.classList.add('invisible');
+        } else {
+          prevBtn.classList.remove('invisible');
+        }
+
+        // 動畫切換
+        const qContainer = document.getElementById('question-container');
+        qContainer.classList.remove('fade-enter');
+        void qContainer.offsetWidth; // trigger reflow
+        qContainer.classList.add('fade-enter');
+      }
+
+      selectOption(optionIndex) {
+        this.userAnswers[this.currentIndex] = optionIndex;
+
+        if (this.currentIndex < QUESTIONS.length - 1) {
+          this.currentIndex++;
+          this.renderQuestion();
+        } else {
+          this.calculateAndShowResult();
+        }
+      }
+
+      prevQuestion() {
+        if (this.currentIndex > 0) {
+          this.currentIndex--;
+          this.renderQuestion();
+        }
+      }
+
+      calculateAndShowResult() {
+        document.getElementById('screen-quiz').classList.add('hidden');
+        document.getElementById('screen-loading').classList.remove('hidden');
+
+        // 計分累計
+        const scoreBoard = { dog: 0, cat: 0, owl: 0, otter: 0, fox: 0, sloth: 0 };
+        this.userAnswers.forEach((optIdx, qIdx) => {
+          const opt = QUESTIONS[qIdx].options[optIdx];
+          for (let [animal, score] of Object.entries(opt.scores)) {
+            scoreBoard[animal] = (scoreBoard[animal] || 0) + score;
+          }
+        });
+
+        // 判定最高分動物
+        let highestAnimal = 'dog';
+        let highestScore = -1;
+        for (let [animal, score] of Object.entries(scoreBoard)) {
+          if (score > highestScore) {
+            highestScore = score;
+            highestAnimal = animal;
+          }
+        }
+
+        this.currentResult = ANIMAL_PROFILES[highestAnimal];
+
+        // 模擬 1.2 秒過渡載入效果
+        setTimeout(() => {
+          document.getElementById('screen-loading').classList.add('hidden');
+          document.getElementById('screen-result').classList.remove('hidden');
+          this.renderResultCard(this.currentResult);
+        }, 1200);
+      }
+
+      renderResultCard(profile) {
+        document.getElementById('result-icon').innerText = profile.icon;
+        document.getElementById('result-icon-bg').style.backgroundColor = profile.color;
+        document.getElementById('result-title').innerText = `${profile.subtitle}｜${profile.name}`;
+        
+        // 渲染標籤
+        const tagsContainer = document.getElementById('result-tags');
+        tagsContainer.innerHTML = '';
+        profile.tags.forEach(t => {
+          const tagSpan = document.createElement('span');
+          tagSpan.className = "text-[11px] font-bold px-2.5 py-1 rounded-full bg-stone-100 text-stone-600";
+          tagSpan.innerText = t;
+          tagsContainer.appendChild(tagSpan);
+        });
+
+        // 渲染文案
+        document.getElementById('result-strength').innerText = profile.strength;
+        document.getElementById('result-blindspot').innerText = profile.blindspot;
+        document.getElementById('result-match').innerText = profile.match;
+        document.getElementById('result-match-desc').innerText = profile.matchDesc;
+        document.getElementById('result-clash').innerText = profile.clash;
+        document.getElementById('result-clash-desc').innerText = profile.clashDesc;
+
+        // 渲染雷達圖
+        this.renderRadarChart(profile);
+      }
+
+      renderRadarChart(profile) {
+        const ctx = document.getElementById('radarChart').getContext('2d');
+        if (this.chartInstance) {
+          this.chartInstance.destroy();
+        }
+
+        this.chartInstance = new Chart(ctx, {
+          type: 'radar',
+          data: {
+            labels: ['社交能量', '邏輯分析', '冒險創新', '溫暖同理', '獨立自律'],
+            datasets: [{
+              data: profile.stats,
+              backgroundColor: profile.chartColor,
+              borderColor: '#2D3142',
+              borderWidth: 1.5,
+              pointBackgroundColor: '#2D3142',
+              pointRadius: 2.5
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              r: {
+                angleLines: { color: 'rgba(0, 0, 0, 0.06)' },
+                grid: { color: 'rgba(0, 0, 0, 0.06)' },
+                pointLabels: {
+                  font: {
+                    family: '"Zen Maru Gothic", sans-serif',
+                    size: 10,
+                    weight: '500'
+                  },
+                  color: '#666'
+                },
+                suggestedMin: 20,
+                suggestedMax: 100,
+                ticks: { display: false }
+              }
+            },
+            plugins: {
+              legend: { display: false }
+            }
+          }
+        });
+      }
+
+      downloadImage() {
+        const target = document.getElementById('result-card');
+        const originalShadow = target.style.boxShadow;
+        target.style.boxShadow = 'none';
+
+        html2canvas(target, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#FFFFFF'
+        }).then(canvas => {
+          target.style.boxShadow = originalShadow;
+          const link = document.createElement('a');
+          link.download = `animal-quiz-${this.currentResult.id}.png`;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+        });
+      }
+
+      copyResult() {
+        if (!this.currentResult) return;
+        const text = `我在【動物系性格測驗】測出的是：${this.currentResult.subtitle}｜${this.currentResult.name}！\n最契合的夥伴是：${this.currentResult.match}\n快來測測看你的動物靈魂原型吧！`;
+        
+        navigator.clipboard.writeText(text).then(() => {
+          const toast = document.getElementById('toast');
+          toast.classList.remove('opacity-0');
+          setTimeout(() => toast.classList.add('opacity-0'), 2000);
+        });
+      }
+
+      restart() {
+        document.getElementById('screen-result').classList.add('hidden');
+        document.getElementById('screen-welcome').classList.remove('hidden');
+      }
+    }
+
+    const quizApp = new QuizApp();
+  </script>
+</body>
+</html>
